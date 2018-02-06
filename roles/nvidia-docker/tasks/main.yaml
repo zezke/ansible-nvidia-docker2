@@ -1,0 +1,32 @@
+---
+###############################################################################
+#
+# This will install the latest Nvidia-docker
+#
+###############################################################################
+- name: Check if nvidia-docker is installed
+  shell: dpkg-query -s nvidia-docker2 | grep 'install ok installed'
+  register: nvidia_docker_check
+  failed_when: no
+  changed_when: no
+
+- name: Add the GPG key
+  apt_key:
+    url: https://nvidia.github.io/nvidia-docker/gpgkey
+    state: present
+  when: nvidia_docker_check.rc == 1
+
+- name: Add the repo
+  shell: curl -s -L https://nvidia.github.io/nvidia-docker/ubuntu16.04/amd64/nvidia-docker.list | tee /etc/apt/sources.list.d/nvidia-docker.list
+  when: nvidia_docker_check.rc == 1
+
+- name: Install nvidia-docker2
+  apt:
+    name: nvidia-docker2
+    state: present
+    update_cache: true
+  when: nvidia_docker_check.rc == 1
+
+- name: Reboot docker to be ready for nvidia-docker2
+  command: pkill -SIGHUP dockerd
+  when: nvidia_docker_check.rc == 1

@@ -1,0 +1,48 @@
+---
+###############################################################################
+#
+# Installs CUDA 
+#
+###############################################################################
+- name: Check if the CUDA directory already exists
+  stat:
+    path: /usr/local/cuda
+  register: cuda_dir
+
+- name: Create the Download directory
+  file: 
+    path: /nvidia 
+    state: directory
+  when: cuda_dir.stat.isdir is not defined
+
+- name: Download the CUDA 8 installer
+  get_url:
+    url: https://developer.nvidia.com/compute/cuda/8.0/Prod2/local_installers/cuda_8.0.61_375.26_linux-run
+    dest: /nvidia/cuda_8.0.61_375.26_linux.run
+    mode: 755
+  when: cuda_dir.stat.isdir is not defined
+
+- name: Split up the CUDA installer (we don't want the outdated Nvidia drivers)
+  command: /nvidia/cuda_8.0.61_375.26_linux.run --extract=/nvidia
+  when: cuda_dir.stat.isdir is not defined
+
+- name: Install CUDA
+  command: /nvidia/cuda-linux64-rel-8.0.61-21551265.run -noprompt
+  when: cuda_dir.stat.isdir is not defined
+
+- name: Configure CUDA I
+  command: bash -c "echo /usr/local/cuda/lib64/ > /etc/ld.so.conf.d/cuda.conf"
+  when: cuda_dir.stat.isdir is not defined
+
+- name: Configure CUDA II
+  command: ldconfig
+  when: cuda_dir.stat.isdir is not defined
+
+- name: add /usr/local/cuda/bin to path
+  lineinfile:
+    dest=/etc/environment
+    state=present
+    backrefs=yes
+    regexp='PATH=(["]*)((?!.*?/usr/local/cuda/bin).*?)(["]*)$'
+    line="PATH=\1\2:/usr/local/cuda/bin\3"
+  when: cuda_dir.stat.isdir is not defined

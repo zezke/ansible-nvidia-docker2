@@ -1,0 +1,11 @@
+---
+- hosts: all
+  become: yes
+  vars:
+    users: 
+      - bram
+  roles:
+    - role: nvidia-driver
+    - role: nvidia-cuda
+    - role: docker
+    - role: nvidia-docker

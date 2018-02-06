@@ -1,0 +1,45 @@
+---
+###############################################################################
+#
+# Checks if an Nvidia driver was installed. If not, it installs it.
+#
+###############################################################################
+- name: Determine if the Nvidia drivers are already installed
+  shell: which nvidia-smi
+  register: nvidia_smi_installed
+  ignore_errors: yes
+  changed_when: False
+# nvidia_smi_installed.rc == 0 : installed
+# nvidia_smi_installed.rc == 1 : not installed
+
+- name: Set fact nvidia_driver_installed
+  set_fact:
+    nvidia_driver_installed={{ nvidia_smi_installed.rc == 0 }}
+  when: nvidia_smi_installed is defined and nvidia_smi_installed.rc is defined
+  changed_when: False
+
+- name: Install dependencies for the Nvidia driver
+  apt:
+    name: "{{ item }}"
+    update_cache: true
+    state: present
+  with_items:
+    - 'build-essential'
+    - 'gcc-multilib'
+    - 'dkms'
+  when: not nvidia_driver_installed
+
+- name: Create the Download directory
+  file: path=/nvidia state=directory
+  when: not nvidia_driver_installed
+
+- name: Download the Nvidia driver
+  get_url:
+    url: http://us.download.nvidia.com/XFree86/Linux-x86_64/384.111/NVIDIA-Linux-x86_64-384.111.run
+    dest: /nvidia/NVIDIA-Linux-x86_64-384.111.run
+    mode: 755
+  when: not nvidia_driver_installed
+
+- name: Install the Nvidia driver
+  command: /nvidia/NVIDIA-Linux-x86_64-384.111.run --dkms -s
+  when: not nvidia_driver_installed
